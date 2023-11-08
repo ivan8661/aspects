@@ -5,6 +5,8 @@ import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.stereotype.Component;
+import ru.poltorakov.domain.dto.UserDTO;
+import ru.poltorakov.domain.mapper.UserMapper;
 import ru.poltorakov.domain.model.useraction.Action;
 import ru.poltorakov.domain.model.useraction.UserAction;
 import ru.poltorakov.domain.model.users.User;
@@ -26,9 +28,11 @@ import java.time.ZonedDateTime;
 public class AuditAspect {
 
     private final UserActionService userActionService;
+    private final UserMapper userMapper;
 
-    public AuditAspect(UserActionService userActionService) {
+    public AuditAspect(UserActionService userActionService, UserMapper userMapper) {
         this.userActionService = userActionService;
+        this.userMapper = userMapper;
     }
 
     @Pointcut("@annotation(ru.poltorakov.aspects.audit.Audit)")
@@ -37,7 +41,8 @@ public class AuditAspect {
 
     @Before("serviceMethods()")
     public void validateToken(JoinPoint joinPoint) throws Throwable {
-        User user = (User) joinPoint.getArgs()[0];
+        UserDTO userDTO = (UserDTO) joinPoint.getArgs()[0];
+        User user = userMapper.toUser(userDTO);
         String methodName = joinPoint.getSignature().getName();
         switch (methodName) {
             case "fund" -> userActionService.saveUserAction(user, new UserAction(Action.CREDIT, ZonedDateTime.now(), user.getLogin()));
